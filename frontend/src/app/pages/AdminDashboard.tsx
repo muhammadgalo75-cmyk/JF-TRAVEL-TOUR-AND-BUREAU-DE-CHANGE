@@ -815,12 +815,12 @@ export function AdminDashboard({ onNavigate, selectedCurrency }: AdminDashboardP
                   />
                 </div>
                 <div>
-                  <Label htmlFor="image">Image URL</Label>
+                  <Label htmlFor="image">Tour Image</Label>
                   <Input
                     id="image"
-                    placeholder="https://..."
-                    value={formData.image || ''}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] })}
                   />
                 </div>
               </div>

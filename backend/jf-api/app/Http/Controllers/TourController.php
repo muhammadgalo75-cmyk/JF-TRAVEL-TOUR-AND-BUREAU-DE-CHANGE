@@ -6,6 +6,7 @@ use App\Models\Tour;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class TourController extends Controller
 {
@@ -78,22 +79,35 @@ class TourController extends Controller
                 'category' => 'required|string',
                 'rating' => 'nullable|numeric|min:0|max:5',
                 'description' => 'nullable|string',
-                'image' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
                 'group_size' => 'nullable|integer|min:1',
                 'itinerary' => 'nullable|array',
                 'included' => 'nullable|array',
                 'excluded' => 'nullable|array',
             ]);
 
-            \Log::info('createTour: Validation passed', $validated);
+            \Log::info('createTour: Validation passed');
 
-            $tour = Tour::create($validated);
+            // Handle file upload
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $imagePath = $file->storeAs('tours', $filename, 'public');
+                \Log::info('createTour: File uploaded', ['path' => $imagePath]);
+            }
+
+            $tourData = $validated;
+            $tourData['image'] = $imagePath;
+
+            $tour = Tour::create($tourData);
 
             \Log::info('createTour: Tour created', [
                 'id' => $tour->id,
                 'name' => $tour->name,
                 'destination' => $tour->destination,
                 'price' => $tour->price,
+                'image' => $tour->image,
             ]);
 
             return response()->json([
@@ -144,12 +158,26 @@ class TourController extends Controller
                 'category' => 'nullable|string',
                 'rating' => 'nullable|numeric|min:0|max:5',
                 'description' => 'nullable|string',
-                'image' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
                 'group_size' => 'nullable|integer|min:1',
                 'itinerary' => 'nullable|array',
                 'included' => 'nullable|array',
                 'excluded' => 'nullable|array',
             ]);
+
+            // Handle file upload
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($tour->image && Storage::disk('public')->exists($tour->image)) {
+                    Storage::disk('public')->delete($tour->image);
+                }
+                
+                $file = $request->file('image');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $imagePath = $file->storeAs('tours', $filename, 'public');
+                $validated['image'] = $imagePath;
+                \Log::info('updateTour: File uploaded', ['path' => $imagePath]);
+            }
 
             // Only update fields that are provided
             $toUpdate = array_filter($validated, function($value) {

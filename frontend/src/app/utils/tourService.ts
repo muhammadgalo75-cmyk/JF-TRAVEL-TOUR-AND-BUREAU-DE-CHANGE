@@ -15,7 +15,7 @@ export interface TourData {
   category: string;
   rating?: number;
   description?: string;
-  image?: string;
+  image?: string | File;
   groupSize?: number;
   itinerary?: string[];
   included?: string[];
@@ -125,12 +125,51 @@ export async function createTour(tourData: TourData): Promise<{
 
     console.log('createTour: Creating tour', tourData);
     
+    // Use FormData to handle file uploads
+    const formData = new FormData();
+    formData.append('name', tourData.name);
+    formData.append('destination', tourData.destination);
+    formData.append('country', tourData.country);
+    formData.append('price', String(tourData.price));
+    formData.append('duration', tourData.duration);
+    formData.append('category', tourData.category);
+    
+    if (tourData.rating) formData.append('rating', String(tourData.rating));
+    if (tourData.description) formData.append('description', tourData.description);
+    if (tourData.groupSize) formData.append('group_size', String(tourData.groupSize));
+    
+    // Handle image file or URL
+    if (tourData.image) {
+      if (tourData.image instanceof File) {
+        formData.append('image', tourData.image);
+      } else if (typeof tourData.image === 'string' && tourData.image) {
+        // If it's a string URL, don't append it
+        console.warn('String image URLs are no longer supported. Please use file upload.');
+      }
+    }
+    
+    // Handle arrays
+    if (tourData.itinerary && tourData.itinerary.length > 0) {
+      tourData.itinerary.forEach((item, index) => {
+        formData.append(`itinerary[${index}]`, item);
+      });
+    }
+    
+    if (tourData.included && tourData.included.length > 0) {
+      tourData.included.forEach((item, index) => {
+        formData.append(`included[${index}]`, item);
+      });
+    }
+    
+    if (tourData.excluded && tourData.excluded.length > 0) {
+      tourData.excluded.forEach((item, index) => {
+        formData.append(`excluded[${index}]`, item);
+      });
+    }
+    
     const response = await fetch(`${API_BASE_URL}/tours`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tourData),
+      body: formData,
     });
 
     console.log('createTour: Response status', response.status);
@@ -176,12 +215,48 @@ export async function updateTour(id: number, tourData: Partial<TourData>): Promi
 
     console.log('updateTour: Updating tour', id, tourData);
     
+    // Use FormData to handle file uploads
+    const formData = new FormData();
+    
+    if (tourData.name) formData.append('name', tourData.name);
+    if (tourData.destination) formData.append('destination', tourData.destination);
+    if (tourData.country) formData.append('country', tourData.country);
+    if (tourData.price) formData.append('price', String(tourData.price));
+    if (tourData.duration) formData.append('duration', tourData.duration);
+    if (tourData.category) formData.append('category', tourData.category);
+    if (tourData.rating !== undefined) formData.append('rating', String(tourData.rating));
+    if (tourData.description) formData.append('description', tourData.description);
+    if (tourData.groupSize) formData.append('group_size', String(tourData.groupSize));
+    
+    // Handle image file or URL
+    if (tourData.image) {
+      if (tourData.image instanceof File) {
+        formData.append('image', tourData.image);
+      }
+    }
+    
+    // Handle arrays
+    if (tourData.itinerary && tourData.itinerary.length > 0) {
+      tourData.itinerary.forEach((item, index) => {
+        formData.append(`itinerary[${index}]`, item);
+      });
+    }
+    
+    if (tourData.included && tourData.included.length > 0) {
+      tourData.included.forEach((item, index) => {
+        formData.append(`included[${index}]`, item);
+      });
+    }
+    
+    if (tourData.excluded && tourData.excluded.length > 0) {
+      tourData.excluded.forEach((item, index) => {
+        formData.append(`excluded[${index}]`, item);
+      });
+    }
+    
     const response = await fetch(`${API_BASE_URL}/tours/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(tourData),
+      body: formData,
     });
 
     console.log('updateTour: Response status', response.status);
